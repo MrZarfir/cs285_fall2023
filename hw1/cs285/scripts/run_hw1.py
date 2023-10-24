@@ -84,7 +84,7 @@ def run_training_loop(params):
     ## AGENT
     #############
 
-    # TODO: Implement missing functions in this class.
+    # DONE: Implement missing functions in this class.
     actor = MLPPolicySL(
         ac_dim,
         ob_dim,
@@ -129,10 +129,13 @@ def run_training_loop(params):
         else:
             # DAGGER training from sampled data relabeled by expert
             assert params['do_dagger']
-            # TODO: collect `params['batch_size']` transitions
+            # DONE: collect `params['batch_size']` transitions
             # HINT: use utils.sample_trajectories
-            # TODO: implement missing parts of utils.sample_trajectory
-            paths, envsteps_this_batch = TODO
+            # DONE: implement missing parts of utils.sample_trajectory
+            paths, envsteps_this_batch = utils.sample_trajectories(env=env,
+                                                                   policy=actor,
+                                                                   min_timesteps_per_batch=params['batch_size'],
+                                                                   max_path_length=params['ep_len'])
 
             # relabel the collected obs with actions from a provided expert policy
             if params['do_dagger']:
@@ -141,7 +144,7 @@ def run_training_loop(params):
                 # TODO: relabel collected obsevations (from our policy) with labels from expert policy
                 # HINT: query the policy (using the get_action function) with paths[i]["observation"]
                 # and replace paths[i]["action"] with these expert labels
-                paths = TODO
+                paths[0]["action"] = expert_policy.get_action(paths[0]["observation"])
 
         total_envsteps += envsteps_this_batch
         # add collected data to replay buffer
@@ -152,12 +155,14 @@ def run_training_loop(params):
         training_logs = []
         for _ in range(params['num_agent_train_steps_per_iter']):
 
-          # TODO: sample some data from replay_buffer
+          # DONE: sample some data from replay_buffer
           # HINT1: how much data = params['train_batch_size']
           # HINT2: use np.random.permutation to sample random indices
           # HINT3: return corresponding data points from each array (i.e., not different indices from each array)
-          # for imitation learning, we only need observations and actions.  
-          ob_batch, ac_batch = TODO
+          # for imitation learning, we only need observations and actions.
+
+          perms = np.random.permutation(params['train_batch_size'])
+          ob_batch, ac_batch = replay_buffer.obs[perms], replay_buffer.acs[perms]
 
           # use the sampled data to train an agent
           train_log = actor.update(ob_batch, ac_batch)

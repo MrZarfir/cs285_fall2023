@@ -93,6 +93,7 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         self.learning_rate = learning_rate
         self.training = training
         self.nn_baseline = nn_baseline
+        self.loss_fn = torch.nn.MSELoss()
 
         self.mean_net = build_mlp(
             input_size=self.ob_dim,
@@ -129,7 +130,10 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # through it. For example, you can return a torch.FloatTensor. You can also
         # return more flexible objects, such as a
         # `torch.distributions.Distribution` object. It's up to you!
-        raise NotImplementedError
+        gpu_obs = observation.to(device=ptu.device)
+        logits = self.mean_net(gpu_obs)
+        dist = torch.softmax(logits, 0)
+        return dist
 
     def update(self, observations, actions):
         """
@@ -141,7 +145,13 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             dict: 'Training Loss': supervised learning loss
         """
         # TODO: update the policy and return the loss
-        loss = TODO
+        predicted_actions = self.forward(ptu.from_numpy(observations))
+        loss = self.loss_fn(predicted_actions, ptu.from_numpy(actions))
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),

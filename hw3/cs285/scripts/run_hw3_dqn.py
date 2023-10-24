@@ -90,22 +90,23 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
         epsilon = exploration_schedule.value(step)
         
-        # TODO(student): Compute action
-        action = ...
+        # DONE TODO(student): Compute action
+        action = agent.get_action(observation, epsilon)
 
-        # TODO(student): Step the environment
+        # DONE TODO(student): Step the environment
+        next_observation, reward, done, info = env.step(action)
 
         next_observation = np.asarray(next_observation)
         truncated = info.get("TimeLimit.truncated", False)
-
-        # TODO(student): Add the data to the replay buffer
+        episode_ended = done and (not truncated)
+        # DONE TODO(student): Add the data to the replay buffer
         if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
             # We're using the memory-efficient replay buffer,
             # so we only insert next_observation (not observation)
-            ...
+            replay_buffer.insert(np.array(action), reward, next_observation, episode_ended)
         else:
             # We're using the regular replay buffer
-            ...
+            replay_buffer.insert(observation, np.array(action), reward, next_observation, episode_ended)
 
         # Handle episode termination
         if done:
@@ -119,13 +120,18 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         # Main DQN training loop
         if step >= config["learning_starts"]:
             # TODO(student): Sample config["batch_size"] samples from the replay buffer
-            batch = ...
+            batch = replay_buffer.sample(config["batch_size"])
 
             # Convert to PyTorch tensors
             batch = ptu.from_numpy(batch)
 
             # TODO(student): Train the agent. `batch` is a dictionary of numpy arrays,
-            update_info = ...
+            obs = batch["observations"]
+            acs = batch["actions"]
+            rewards = batch["rewards"]
+            next_obs = batch["next_observations"]
+            dones = batch["dones"]
+            update_info = agent.update(obs, acs, rewards, next_obs, dones, step)
 
             # Logging code
             update_info["epsilon"] = epsilon
