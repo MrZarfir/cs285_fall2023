@@ -3,3 +3,5 @@ env_name: CartPole-v1
 
 target_update_period: 1000
 #total_steps: 100000
+#learning_rate: 0.05 # Subquestion for hw3
+use_double_q: true

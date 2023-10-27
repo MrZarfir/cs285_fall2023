@@ -10,14 +10,12 @@ import cv2
 import numpy as np
 import time
 
-import torch
-
 from cs285.infrastructure import pytorch_util as ptu
 
 
 def sample_trajectory(env, policy, max_path_length, render=False):
     """Sample a rollout in the environment from a policy."""
-    
+
     # initialize env for the beginning of a new rollout
     ob = env.reset()  # DONE: initial observation after resetting the env
 
@@ -33,18 +31,18 @@ def sample_trajectory(env, policy, max_path_length, render=False):
             else:
                 img = env.render(mode='single_rgb_array')
             image_obs.append(cv2.resize(img, dsize=(250, 250), interpolation=cv2.INTER_CUBIC))
-    
+
         # TODO use the most recent ob to decide what to do
-        ob_tensor = torch.tensor(ob, dtype=torch.float32, device=ptu.device)
+        ob_tensor = ptu.from_numpy(ob)
         ac = ptu.to_numpy(policy.forward(ob_tensor))  # HINT: this is a numpy array
 
         # DONE: take that action and get reward and next ob
         next_ob, rew, done, _ = env.step(ac)
-        
+
         # DONE rollout can end due to done, or due to max_path_length
         steps += 1
         rollout_done = steps >= max_path_length or done  # HINT: this is either 0 or 1
-        
+
         # record result of taking that action
         obs.append(ob)
         acs.append(ac)
@@ -52,16 +50,16 @@ def sample_trajectory(env, policy, max_path_length, render=False):
         next_obs.append(next_ob)
         terminals.append(rollout_done)
 
-        ob = next_ob # jump to next timestep
+        ob = next_ob  # jump to next timestep
 
         # end the rollout if the rollout ended
         if rollout_done:
             break
 
-    return {"observation" : np.array(obs, dtype=np.float32),
-            "image_obs" : np.array(image_obs, dtype=np.uint8),
-            "reward" : np.array(rewards, dtype=np.float32),
-            "action" : np.array(acs, dtype=np.float32),
+    return {"observation": np.array(obs, dtype=np.float32),
+            "image_obs": np.array(image_obs, dtype=np.uint8),
+            "reward": np.array(rewards, dtype=np.float32),
+            "action": np.array(acs, dtype=np.float32),
             "next_observation": np.array(next_obs, dtype=np.float32),
             "terminal": np.array(terminals, dtype=np.float32)}
 

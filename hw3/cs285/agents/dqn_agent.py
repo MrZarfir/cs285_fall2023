@@ -41,7 +41,7 @@ class DQNAgent(nn.Module):
 
         self.update_target_critic()
 
-    def get_action(self, observation: np.ndarray, epsilon: float = 0.02) -> int:
+    def get_action(self, observation: np.ndarray, epsilon: float = 0.00) -> int:
         """
         Used for evaluation.
         """
@@ -68,15 +68,14 @@ class DQNAgent(nn.Module):
         """Update the DQN critic, and return stats for logging."""
         (batch_size,) = reward.shape
 
-        nb_dones = ptu.to_numpy(done).sum()
-
         # Compute target values
         with torch.no_grad():
             # DONE TODO(student): compute target values
             next_qa_values = self.target_critic(next_obs)
 
             if self.use_double_q:
-                raise NotImplementedError
+                q_vals_next_obs_critic = self.critic(next_obs)
+                next_action = torch.argmax(q_vals_next_obs_critic, dim=1)
             else:
                 next_action = torch.argmax(next_qa_values, dim=1)
             
@@ -85,7 +84,7 @@ class DQNAgent(nn.Module):
 
         # DONE TODO(student): train the critic with the target values
         qa_values = self.critic(obs)
-        q_values = torch.gather(qa_values, 1, action.unsqueeze(-1)).squeeze(-1) # Compute from the data actions; see torch.gather
+        q_values = torch.gather(qa_values, 1, action.unsqueeze(-1).type(torch.int64)).squeeze(-1) # Compute from the data actions; see torch.gather
         loss = self.critic_loss(q_values, target_values)
 
         self.critic_optimizer.zero_grad()
